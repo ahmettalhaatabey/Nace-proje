@@ -37,6 +37,10 @@ for name, url in pages.items():
             print("   link:", full)
 
 direct = [
+    "https://www.mevzuat.gov.tr/MevzuatMetin/yonetmelik/9.5.16909-Ek.xlsx",
+    "https://www.mevzuat.gov.tr/MevzuatMetin/teblig/9.5.16909-Ek.xlsx",
+    "https://www.mevzuat.gov.tr/anasayfa/9.5.16909-Ek.xlsx",
+    "https://www.mevzuat.gov.tr/mevzuatmetin/yonetmelik/9.5.16909-ek.xlsx",
     "https://www.mevzuat.gov.tr/MevzuatMetin/9.5.16909.pdf",
     "https://www.mevzuat.gov.tr/File/GeneratePdf?mevzuatNo=16909&mevzuatTur=Teblig&mevzuatTertip=5",
     "https://www.mevzuat.gov.tr/MevzuatMetin/ekler/9.5.16909-Ek.xlsx",
@@ -48,6 +52,11 @@ direct = [
     "https://www.alomaliye.com/wp-content/uploads/2025/03/turmob-issagligi.pdf",
     "https://www.turmob.org.tr/arsiv/mbs/resmigazete/-Guncel2020_NaceListesi.pdf",
 ]
-for i, url in enumerate(direct):
+for i, url in enumerate(direct[:4]):
+    r = get(url, f"ek_{i:02d}.xlsx")
+    if r is not None and r.ok and r.content[:2] == b"PK":
+        print("   >>> XLSX BULUNDU:", url)
+direct = direct[4:]
+for i, url in enumerate([]):
     ext = ".xlsx" if "xlsx" in url else ".pdf"
     get(url, f"direct_{i:02d}{ext}")
