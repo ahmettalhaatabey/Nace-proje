@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NACE Kodu ve Tehlike Sınıfı Sorgulama</title>
+  <meta name="description" content="NACE kodları ve ÇSGB İşyeri Tehlike Sınıfları listesinde hızlı arama, filtreleme ve Excel/PDF dışa aktarma.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231d4ed8'/%3E%3Ctext x='16' y='22' font-family='Arial' font-size='14' font-weight='700' fill='white' text-anchor='middle'%3EN%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">N</span>
+        <div>
+          <h1>NACE Kodu &amp; Tehlike Sınıfı</h1>
+          <p class="sub">İşletme açılışı için faaliyet kodu bulma aracı</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="btn ghost" id="btnChanges" type="button" hidden><span class="label-long">Son </span>değişiklikler</button>
+        <button class="btn ghost icon-btn" id="btnTheme" type="button" title="Açık / koyu tema" aria-label="Açık / koyu tema"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 2v16a8 8 0 0 1 0-16Z"/></svg></button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="search-panel">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 3a7.5 7.5 0 0 1 5.96 12.06l4.24 4.24-1.4 1.4-4.24-4.24A7.5 7.5 0 1 1 10.5 3Zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11Z"/></svg>
+        <input id="q" type="search" autocomplete="off" spellcheck="false"
+               placeholder="İşletme faaliyetini veya kodu yazın: kuaför, kafe, yazılım, 47.11, inşaat…"
+               aria-label="NACE kodu veya faaliyet ara">
+        <kbd>/</kbd>
+      </div>
+      <div class="hint" id="hint">İpucu: Birden fazla kelime yazabilirsiniz (ör. <em>oto tamir</em>). Türkçe karakter şart değil (<em>kuafor</em> = <em>kuaför</em>).</div>
+
+      <div class="filters">
+        <div class="chips" role="group" aria-label="Tehlike sınıfı">
+          <button type="button" class="chip" data-hazard="1" aria-pressed="false"><span class="dot h1"></span>Az Tehlikeli <b id="c1"></b></button>
+          <button type="button" class="chip" data-hazard="2" aria-pressed="false"><span class="dot h2"></span>Tehlikeli <b id="c2"></b></button>
+          <button type="button" class="chip" data-hazard="3" aria-pressed="false"><span class="dot h3"></span>Çok Tehlikeli <b id="c3"></b></button>
+        </div>
+        <div class="selects">
+          <select id="section" aria-label="Bölüm"><option value="">Tüm bölümler</option></select>
+          <select id="division" aria-label="Bölüm alt grubu"><option value="">Tüm alt gruplar</option></select>
+          <select id="sort" aria-label="Sıralama">
+            <option value="relevance">Sıralama: En uygun</option>
+            <option value="code">Sıralama: Koda göre</option>
+            <option value="hazard-desc">Sıralama: Tehlike (yüksek → düşük)</option>
+            <option value="hazard-asc">Sıralama: Tehlike (düşük → yüksek)</option>
+            <option value="name">Sıralama: Açıklamaya göre (A-Z)</option>
+          </select>
+          <button type="button" class="btn ghost" id="btnReset">Filtreleri temizle</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="results-head">
+      <div id="summary" class="summary" aria-live="polite">Veriler yükleniyor…</div>
+      <div class="export">
+        <span class="export-label">Dışa aktar:</span>
+        <button type="button" class="btn" id="btnXlsx">Excel</button>
+        <button type="button" class="btn" id="btnPdf">PDF</button>
+        <button type="button" class="btn ghost" id="btnCsv">CSV</button>
+      </div>
+    </section>
+
+    <section class="layout">
+      <div class="table-card">
+        <table class="results" id="results">
+          <thead>
+            <tr>
+              <th class="col-code">NACE Kodu</th>
+              <th>Faaliyet Tanımı</th>
+              <th class="col-hz">Tehlike Sınıfı</th>
+              <th class="col-act"><span class="sr">İşlem</span></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+        <div class="empty" id="empty" hidden>
+          <p><strong>Sonuç bulunamadı.</strong></p>
+          <p>Daha genel bir kelime deneyin (ör. <em>restoran</em> yerine <em>lokanta</em>, <em>yemek</em>) veya filtreleri temizleyin.</p>
+        </div>
+        <button type="button" class="btn more" id="btnMore" hidden>Daha fazla göster</button>
+      </div>
+
+      <aside class="side">
+        <div class="card" id="cartCard">
+          <div class="card-head">
+            <h2>Müşteri dosyası</h2>
+            <span class="badge-count" id="cartCount">0</span>
+          </div>
+          <p class="muted small">Müşteriniz için düşündüğünüz kodları ☆ ile buraya ekleyin; tek tıkla Excel/PDF alın.</p>
+          <input type="text" id="clientName" class="input" placeholder="Müşteri / işletme adı (isteğe bağlı)">
+          <ul class="cart" id="cart"></ul>
+          <div class="cart-actions">
+            <button type="button" class="btn" id="cartXlsx" disabled>Excel</button>
+            <button type="button" class="btn" id="cartPdf" disabled>PDF</button>
+            <button type="button" class="btn ghost" id="cartClear" disabled>Temizle</button>
+          </div>
+        </div>
+
+        <div class="card info">
+          <h2>Tehlike sınıfı ne anlama gelir?</h2>
+          <p class="muted small">6331 sayılı İSG Kanunu ve ilgili yönetmeliklere göre özet yükümlülükler:</p>
+          <table class="mini">
+            <thead><tr><th></th><th><span class="dot h1"></span>Az</th><th><span class="dot h2"></span>Tehlikeli</th><th><span class="dot h3"></span>Çok</th></tr></thead>
+            <tbody>
+              <tr><td>İSG uzmanı belgesi</td><td>C</td><td>B</td><td>A</td></tr>
+              <tr><td>Risk değ. yenileme</td><td>6 yıl</td><td>4 yıl</td><td>2 yıl</td></tr>
+              <tr><td>Acil durum planı yenileme</td><td>6 yıl</td><td>4 yıl</td><td>2 yıl</td></tr>
+              <tr><td>Çalışan İSG eğitimi (min.)</td><td>8 saat</td><td>12 saat</td><td>16 saat</td></tr>
+              <tr><td>Eğitim tekrarı</td><td>3 yılda 1</td><td>2 yılda 1</td><td>Yılda 1</td></tr>
+              <tr><td>Periyodik sağlık muayenesi</td><td>5 yılda 1</td><td>3 yılda 1</td><td>Yılda 1</td></tr>
+              <tr><td>İlk yardımcı (her … çalışan için 1)</td><td>20</td><td>15</td><td>10</td></tr>
+            </tbody>
+          </table>
+          <p class="muted tiny">Bilgilendirme amaçlıdır; güncel mevzuatı ve İSG profesyonelinizi esas alın.</p>
+        </div>
+
+        <div class="card source" id="sourceCard">
+          <h2>Veri kaynağı</h2>
+          <div id="sourceInfo" class="small muted">—</div>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <dialog id="detail" class="dialog">
+    <form method="dialog" class="dialog-inner">
+      <button class="close" value="close" aria-label="Kapat">×</button>
+      <div id="detailBody"></div>
+    </form>
+  </dialog>
+
+  <dialog id="changes" class="dialog wide">
+    <form method="dialog" class="dialog-inner">
+      <button class="close" value="close" aria-label="Kapat">×</button>
+      <div id="changesBody"></div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+
+  <footer class="footer wrap">
+    <p>Tehlike sınıfları: Çalışma ve Sosyal Güvenlik Bakanlığı, <em>İş Sağlığı ve Güvenliğine İlişkin İşyeri Tehlike Sınıfları Tebliği</em> (Ek-1). Liste otomatik olarak resmi kaynaktan güncellenir. Resmi işlemlerde mevzuat.gov.tr ve İSG-KATİP kayıtlarını esas alınız.</p>
+  </footer>
+
+  <script src="data/nace.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>
